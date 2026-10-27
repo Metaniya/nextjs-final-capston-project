@@ -1,0 +1,266 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useCart } from "../lib/cart-context";
+
+const areas = ["Summit", "Akaki", "Bole", "Gullele"];
+
+function Checkout() {
+  const { items, total, clearCart } = useCart();
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    area: "",
+    address: "",
+  });
+  const [errors, setErrors] = useState({
+    name: "",
+    phone: "",
+    area: "",
+    address: "",
+  });
+  const [submitted, setSubmitted] = useState(false);
+
+  function handleChange(e) {
+    const { name, value } = e.target;
+
+    setForm({
+      ...form,
+      [name]: value,
+    });
+
+    setErrors({
+      ...errors,
+      [name]: "",
+    });
+  }
+
+  function getErrors() {
+    const nextErrors = {
+      name: "",
+      phone: "",
+      area: "",
+      address: "",
+    };
+
+    if (!form.name.trim()) {
+      nextErrors.name = "Please enter your name.";
+    }
+
+    if (!/^\d{10}$/.test(form.phone.trim())) {
+      nextErrors.phone = "Please enter a valid 10-digit phone number.";
+    }
+
+    if (!form.area) {
+      nextErrors.area = "Please select a delivery area.";
+    }
+
+    if (!form.address.trim()) {
+      nextErrors.address = "Please enter a delivery address.";
+    }
+
+    return nextErrors;
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+
+    if (items.length === 0) {
+      return;
+    }
+
+    const nextErrors = getErrors();
+    const isInvalid = Object.values(nextErrors).some((message) => message);
+
+    if (isInvalid) {
+      setErrors(nextErrors);
+      return;
+    }
+
+    setSubmitted(true);
+    clearCart();
+  }
+
+  if (submitted) {
+    return (
+      <div className="page status">
+        <h2>Order placed</h2>
+        <p role="status">
+          Thank you, {form.name}. Your order is on the way to {form.area}.
+        </p>
+        <p className="page-links">
+          <Link className="btn" href="/menu">
+            Back to menu
+          </Link>
+        </p>
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="page status">
+        <h2>Checkout</h2>
+        <p role="status">Your cart is empty, so you cannot place an order yet.</p>
+        <p className="page-links">
+          <Link className="btn" href="/menu">
+            Browse the menu
+          </Link>
+          <Link className="btn btn-secondary" href="/cart">
+            Back to cart
+          </Link>
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page">
+      <h2>Checkout</h2>
+      <div className="checkout-grid">
+        <div className="form-card">
+          <h3>Delivery details</h3>
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="form-row">
+              <div>
+                <div className="field">
+                  <label htmlFor="name">Full name</label>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    value={form.name}
+                    onChange={handleChange}
+                    placeholder="Your name"
+                    autoComplete="name"
+                    aria-invalid={Boolean(errors.name)}
+                    aria-describedby={errors.name ? "name-error" : undefined}
+                  />
+                </div>
+                {errors.name && (
+                  <p id="name-error" className="error-text" role="alert">
+                    {errors.name}
+                  </p>
+                )}
+              </div>
+              <div>
+                <div className="field">
+                  <label htmlFor="phone">Phone number</label>
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    inputMode="numeric"
+                    value={form.phone}
+                    onChange={handleChange}
+                    placeholder="10-digit phone number"
+                    autoComplete="tel"
+                    aria-invalid={Boolean(errors.phone)}
+                    aria-describedby={errors.phone ? "phone-error" : undefined}
+                  />
+                </div>
+                {errors.phone && (
+                  <p id="phone-error" className="error-text" role="alert">
+                    {errors.phone}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="field">
+              <label htmlFor="area">Delivery area</label>
+              <select
+                id="area"
+                name="area"
+                value={form.area}
+                onChange={handleChange}
+                aria-invalid={Boolean(errors.area)}
+                aria-describedby={errors.area ? "area-error" : undefined}
+              >
+                <option value="">Select an area</option>
+                {areas.map((area) => (
+                  <option key={area} value={area}>
+                    {area}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {errors.area && (
+              <p id="area-error" className="error-text" role="alert">
+                {errors.area}
+              </p>
+            )}
+
+            <div className="field">
+              <label htmlFor="address">Delivery address</label>
+              <input
+                id="address"
+                name="address"
+                type="text"
+                value={form.address}
+                onChange={handleChange}
+                placeholder="Street, building, or landmark"
+                autoComplete="street-address"
+                aria-invalid={Boolean(errors.address)}
+                aria-describedby={errors.address ? "address-error" : undefined}
+              />
+            </div>
+            {errors.address && (
+              <p id="address-error" className="error-text" role="alert">
+                {errors.address}
+              </p>
+            )}
+
+            <div className="field">
+              <label htmlFor="notes">Delivery notes (optional)</label>
+              <textarea
+                id="notes"
+                name="notes"
+                rows="2"
+                placeholder="Ring the bell twice"
+              />
+            </div>
+
+            <button type="submit" className="btn checkout-submit">
+              Place order
+            </button>
+          </form>
+        </div>
+
+        <div className="panel">
+          <h3>Your order</h3>
+          <div className="checkout-items">
+            {items.map((item) => (
+              <div className="checkout-item" key={item.id}>
+                {item.image ? (
+                  <img className="thumb" src={item.image} alt="" />
+                ) : (
+                  <div className="thumb thumb-fallback" aria-hidden="true">
+                    ○
+                  </div>
+                )}
+                <div>
+                  <strong>{item.name}</strong>
+                  <p>Qty {item.quantity}</p>
+                </div>
+                <span>{item.price * item.quantity} ETB</span>
+              </div>
+            ))}
+          </div>
+          <p className="summary-total">
+            <span>Total</span>
+            <strong>{total} ETB</strong>
+          </p>
+        </div>
+      </div>
+      <p className="page-links">
+        <Link className="btn btn-secondary" href="/cart">
+          Back to cart
+        </Link>
+      </p>
+    </div>
+  );
+}
+
+export default Checkout;
